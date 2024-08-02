@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Geolocation Report Generator</title>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <style>
+        .loader {
+            display: none;
+            border: 16px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 16px solid blue;
+            width: 120px;
+            height: 120px;
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table, th, td {
+            border: 1px solid black;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <h1>Geolocation Report Generator</h1>
+    <label for="continent">Select Continent:</label>
+    <select id="continent" style="width: 200px;">
+        <option value="">--Select Continent--</option>
+        <!-- Continent options will be populated dynamically -->
+    </select>
+    
+    <label for="country">Select Country:</label>
+    <select id="country" style="width: 200px;">
+        <option value="">--Select Country--</option>
+    </select>
+
+    <label for="city">Select City:</label>
+    <select id="city" style="width: 200px;">
+        <option value="">--Select City--</option>
+    </select>
+    
+    <button onclick="generateReport()">Generate</button>
+    <div class="loader" id="loader"></div>
+    
+    <table id="resultTable">
+        <thead>
+            <tr>
+                <th>Coordinates</th>
+                <th>Level 1</th>
+                <th>Level 2</th>
+                <th>Level 3</th>
+                <th>Level 4</th>
+                <th>Branch</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        $(document).ready(function() {
+            $('#continent').select2();
+            $('#country').select2();
+            $('#city').select2();
+
+            // Populate continents
+            $.getJSON('/get_continents', function(continents) {
+                $.each(continents, function(index, continent) {
+                    $('#continent').append(`<option value="${continent}">${continent}</option>`);
+                });
+            });
+
+            $('#continent').on('change', function() {
+                const continent = $(this).val();
+                updateCountries(continent);
+            });
+
+            $('#country').on('change', function() {
+                const continent = $('#continent').val();
+                const country = $(this).val();
+                updateCities(continent, country);
+            });
+        });
+
+        function updateCountries(continent) {
+            $.getJSON(`/get_countries?continent=${continent}`, function(countries) {
+                $('#country').empty().append('<option value="">--Select Country--</option>');
+                $.each(countries, function(index, country) {
+                    $('#country').append(`<option value="${country}">${country}</option>`);
+                });
+                $('#country').trigger('change');
+            });
+        }
+
+        function updateCities(continent, country) {
+            $.getJSON(`/get_cities?continent=${continent}&country=${country}`, function(cities) {
+                $('#city').empty().append('<option value="">--Select City--</option>');
+                $.each(cities, function(index, city) {
+                    $('#city').append(`<option value="${city}">${city}</option>`);
+                });
+            });
+        }
+
+        function generateReport() {
+            const continent = $('#continent').val();
+            const country = $('#country').val();
+            const city = $('#city').val();
+            const loader = $('#loader');
+            const resultTable = $('#resultTable tbody');
+
+            if (!continent || !country || !city) {
+                alert("Please select a continent, country, and city.");
+                return;
+            }
+
+            loader.show();
+            resultTable.empty();
+
+            $.ajax({
+                url: '/generate',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ continent, country, city }),
+                success: function(data) {
+                    loader.hide();
+                    data.forEach(result => {
+                        const row = `<tr>
+                            <td>${result.Coordinates}</td>
+                            <td>${result['Admin Levels']['Level 1']}</td>
+                            <td>${result['Admin Levels']['Level 2']}</td>
+                            <td>${result['Admin Levels']['Level 3']}</td>
+                            <td>${result['Admin Levels']['Level 4']}</td>
+                            <td>${result.Branch}</td>
+                        </tr>`;
+                        resultTable.append(row);
+                    });
+                },
+                error: function(error) {
+                    loader.hide();
+                    alert(`Error: ${error.responseText}`);
+                }
+            });
+        }
+    </script>
+</body>
+</html>
