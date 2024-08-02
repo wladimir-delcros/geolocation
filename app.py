@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, render_template
 import random
+import os
 import time
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut, GeocoderServiceError
