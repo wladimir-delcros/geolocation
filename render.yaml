@@ -1,0 +1,7 @@
+version: 1
+services:
+  - type: web
+    name: geolocation
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
