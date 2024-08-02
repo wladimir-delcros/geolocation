@@ -86,4 +86,5 @@ def get_country_module(country_code):
     return country_module, branch
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
+
